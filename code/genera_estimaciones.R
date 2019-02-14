@@ -49,7 +49,7 @@ estrato <- list.files(
 )
 
 estrato_df <- map_df(
-  completas, 
+  estrato, 
   function(x){
     cat("Generando estimación de: ", x, "\n")
     
@@ -88,7 +88,7 @@ casillas <- list.files(
 )
 
 casillas_df <- map_df(
-  completas, 
+  casillas, 
   function(x){
     cat("Generando estimación de: ", x, "\n")
     
