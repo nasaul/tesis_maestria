@@ -1,0 +1,66 @@
+---
+title: "Estimaciones Guanajuato 2012"
+author: "Saúl Caballero"
+date: "2/16/2019"
+output: html_document
+---
+
+```{r init, echo = FALSE, message = FALSE}
+library(tidyverse)
+```
+
+# Coberturas
+
+```{r cober, echo = FALSE, message = FALSE}
+completas <- read_csv(
+  here::here("results/estimaciones_gto/completas.csv")
+) %>% 
+  mutate(muestra = "completas")
+estrato   <- read_csv(
+  here::here("results/estimaciones_gto/faltantes_estrato.csv")
+) %>% 
+  mutate(muestra = "faltantes_estrato")
+casilla   <- read_csv(
+  here::here("results/estimaciones_gto/faltantes_casilla.csv")
+) %>% 
+  mutate(muestra = "faltantes_casilla")
+
+full_join(completas, estrato) %>% 
+  full_join(casilla) %>% 
+  na.omit %>% 
+  ggplot(
+    aes(
+      x = n_muestra
+    )
+  ) +
+  facet_grid(party ~ muestra, scales = "free_y") +
+  # geom_point(aes(y = mean_post)) +
+  geom_pointrange(
+    aes(ymin = int_l, ymax = int_r, y = mean_post),
+    alpha = 0.5, fatten = 0.15
+  ) +
+  theme_minimal() +
+  labs(x = "muestras", y = "est")
+
+```
+
+# Precisiones
+
+```{r, echo = FALSE, message = FALSE}
+full_join(completas, estrato) %>% 
+  full_join(casilla) %>% 
+  na.omit %>% 
+  ggplot(
+    aes(
+      x = n_muestra,
+      y = 2 * std_dev_post
+    )
+  ) +
+  facet_grid(party ~ muestra, scales = "free_y") +
+  geom_point() +
+  geom_line() +
+  labs(x = "muestras", y = "precision") +
+  theme_minimal() 
+```
+
+
