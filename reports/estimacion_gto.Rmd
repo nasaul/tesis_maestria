@@ -25,9 +25,22 @@ casilla   <- read_csv(
 ) %>% 
   mutate(muestra = "faltantes_casilla")
 
+real <- quickcountmx::gto_2012 %>% 
+    gather(partido, n_votes, pri_pvem:otros) %>% 
+    group_by(partido) %>% 
+    summarise(n_votes = sum(n_votes)) %>% 
+    mutate(rank = rank(-n_votes)) %>% 
+    ungroup() %>% 
+    mutate(prop_votes = 100 * n_votes / sum(n_votes)) %>% 
+    rename(
+      party = partido, 
+      real  = prop_votes
+    )
+
 full_join(completas, estrato) %>% 
   full_join(casilla) %>% 
-  na.omit %>% 
+  full_join(real) %>% 
+  # na.omit %>% 
   ggplot(
     aes(
       x = n_muestra
@@ -40,6 +53,7 @@ full_join(completas, estrato) %>%
     alpha = 0.5, fatten = 0.15
   ) +
   theme_minimal() +
+  geom_hline(aes(yintercept = real), colour = "red") +
   labs(x = "muestras", y = "est")
 
 ```
@@ -57,10 +71,50 @@ full_join(completas, estrato) %>%
     )
   ) +
   facet_grid(party ~ muestra, scales = "free_y") +
-  geom_point() +
   geom_line() +
   labs(x = "muestras", y = "precision") +
+  ylim(0, 1.5) +
   theme_minimal() 
 ```
 
+# Comparación
+
+Binomial Negativa
+
+```{R, echo = FALSE, message = FALSE}
+full_join(completas, estrato) %>% 
+  full_join(casilla) %>% 
+  full_join(real) %>% 
+  group_by(party, muestra) %>% 
+  summarise(
+    ind = sum(if_else(real <= int_r & real >= int_l, 1, 0)),
+    pres = mean(2 * std_dev_post)
+  ) %>% 
+  knitr::kable()
+```
+
+Mezcla
+
+```{r, echo = FALSE, message = FALSE}
+completam <- read_csv(here::here("results/estimaciones_gto/completas_gto_anzarut.csv")) %>% 
+  mutate(muestra = "completa")
+
+casillam <- read_csv(here::here("results/estimaciones_gto/faltantes_casilla_gto_anzarut.csv")) %>% 
+  mutate(muestra = "faltantes_casilla")
+
+estratom <- read_csv(here::here("results/estimaciones_gto/faltantes_estrato_gto_anzarut.csv")) %>% 
+  mutate(muestra = "faltantes_estrato")
+
+
+full_join(completam, estratom) %>% 
+  full_join(casillam) %>% 
+  rename(party = partido, int_r = LS, int_l = LI) %>% 
+  full_join(real) %>% 
+  group_by(party, muestra) %>% 
+  summarise(
+    ind = sum(if_else(real <= int_r & real >= int_l, 1, 0))
+    # pres = mean(2 * std_dev_post)
+  ) %>% 
+  knitr::kable()
+```
 
