@@ -24,6 +24,15 @@ casilla   <- read_csv(
   here::here("results/estimaciones_gto/faltantes_casilla.csv")
 ) %>% 
   mutate(muestra = "faltantes_casilla")
+completam <- read_csv(here::here("results/estimaciones_gto/completas_gto_anzarut.csv")) %>% 
+  mutate(muestra = "completas")
+
+casillam <- read_csv(here::here("results/estimaciones_gto/faltantes_casilla_gto_anzarut.csv")) %>% 
+  mutate(muestra = "faltantes_casilla")
+
+estratom <- read_csv(here::here("results/estimaciones_gto/faltantes_estrato_gto_anzarut.csv")) %>% 
+  mutate(muestra = "faltantes_estrato")
+
 
 real <- quickcountmx::gto_2012 %>% 
     gather(partido, n_votes, pri_pvem:otros) %>% 
@@ -36,6 +45,8 @@ real <- quickcountmx::gto_2012 %>%
       party = partido, 
       real  = prop_votes
     )
+
+
 
 full_join(completas, estrato) %>% 
   full_join(casilla) %>% 
@@ -54,7 +65,27 @@ full_join(completas, estrato) %>%
   ) +
   theme_minimal() +
   geom_hline(aes(yintercept = real), colour = "red") +
-  labs(x = "muestras", y = "est")
+  labs(x = "muestras", y = "est", title = "Binomial Negativa")
+
+full_join(completam, estratom) %>% 
+  full_join(casillam) %>% 
+  rename(party = partido, int_r = LS, int_l = LI, mean_post = est) %>% 
+  full_join(real) %>% 
+  # na.omit %>% 
+  ggplot(
+    aes(
+      x = n_muestra
+    )
+  ) +
+  facet_grid(party ~ muestra, scales = "free_y") +
+  # geom_point(aes(y = mean_post)) +
+  geom_pointrange(
+    aes(ymin = int_l, ymax = int_r, y = mean_post),
+    alpha = 0.5, fatten = 0.15
+  ) +
+  theme_minimal() +
+  geom_hline(aes(yintercept = real), colour = "red") +
+  labs(x = "muestras", y = "est", title = "Mezcla")
 
 ```
 
@@ -67,54 +98,70 @@ full_join(completas, estrato) %>%
   ggplot(
     aes(
       x = n_muestra,
-      y = 2 * std_dev_post
+      y = (int_r - int_l)/2
     )
   ) +
   facet_grid(party ~ muestra, scales = "free_y") +
   geom_line() +
-  labs(x = "muestras", y = "precision") +
+  labs(x = "muestras", y = "precision", title = "Binomial Negativa") +
+  ylim(0, 1.5) +
+  theme_minimal() 
+
+full_join(completam, estratom) %>% 
+  full_join(casillam) %>% 
+  rename(party = partido, int_r = LS, int_l = LI, mean_post = est) %>% 
+  ggplot(
+    aes(
+      x = n_muestra,
+      y = (int_r - int_l) / 2
+    )
+  ) +
+  facet_grid(party ~ muestra, scales = "free_y") +
+  geom_line() +
+  labs(x = "muestras", y = "precision", title = "Mezcla") +
   ylim(0, 1.5) +
   theme_minimal() 
 ```
 
 # Comparación
 
-Binomial Negativa
-
 ```{R, echo = FALSE, message = FALSE}
-full_join(completas, estrato) %>% 
+bin_neg <- full_join(completas, estrato) %>% 
   full_join(casilla) %>% 
   full_join(real) %>% 
   group_by(party, muestra) %>% 
   summarise(
     ind = sum(if_else(real <= int_r & real >= int_l, 1, 0)),
-    pres = mean(2 * std_dev_post)
-  ) %>% 
-  knitr::kable()
+    pres = mean((int_r - int_l)/2)
+  ) %>% ungroup
 ```
 
-Mezcla
 
 ```{r, echo = FALSE, message = FALSE}
-completam <- read_csv(here::here("results/estimaciones_gto/completas_gto_anzarut.csv")) %>% 
-  mutate(muestra = "completa")
-
-casillam <- read_csv(here::here("results/estimaciones_gto/faltantes_casilla_gto_anzarut.csv")) %>% 
-  mutate(muestra = "faltantes_casilla")
-
-estratom <- read_csv(here::here("results/estimaciones_gto/faltantes_estrato_gto_anzarut.csv")) %>% 
-  mutate(muestra = "faltantes_estrato")
 
 
-full_join(completam, estratom) %>% 
+mezcla <- full_join(completam, estratom) %>% 
   full_join(casillam) %>% 
-  rename(party = partido, int_r = LS, int_l = LI) %>% 
+  rename(party = partido, int_r = LS, int_l = LI) %>%
+  mutate(pres = (int_r - int_l)/2) %>% 
   full_join(real) %>% 
   group_by(party, muestra) %>% 
   summarise(
-    ind = sum(if_else(real <= int_r & real >= int_l, 1, 0))
-    # pres = mean(2 * std_dev_post)
+    ind = sum(if_else(real <= int_r & real >= int_l, 1, 0)),
+    pres = mean(pres)
+  ) %>% ungroup
+
+mezcla %>% 
+  rename(mezcla = ind, pres_mezcla = pres) %>% 
+  left_join(
+    bin_neg %>% 
+      rename(
+        bin_neg = ind,
+        pres_bin = pres
+      )
   ) %>% 
-  knitr::kable()
+  select(
+    party, muestra, mezcla, bin_neg, pres_mezcla, pres_bin
+  ) %>% knitr::kable(digits = 2)
 ```
 
