@@ -1,15 +1,10 @@
----
-title: "Estimaciones Guanajuato 2012"
-author: "Saúl Caballero"
-date: "2/16/2019"
-output: html_document
----
+# Estimations
 
 ```{r init, echo = FALSE, message = FALSE}
 library(tidyverse)
 ```
 
-# Coberturas
+## Coberturas
 
 ```{r cober, echo = FALSE, message = FALSE}
 completas <- read_csv(
@@ -89,7 +84,7 @@ full_join(completam, estratom) %>%
 
 ```
 
-# Precisiones
+## Precisiones
 
 ```{r, echo = FALSE, message = FALSE}
 full_join(completas, estrato) %>% 
@@ -123,7 +118,7 @@ full_join(completam, estratom) %>%
   theme_minimal() 
 ```
 
-# Comparación
+## Comparación
 
 ```{R, echo = FALSE, message = FALSE}
 bin_neg <- full_join(completas, estrato) %>% 
