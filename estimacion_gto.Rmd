@@ -29,7 +29,7 @@ estratom <- read_csv(here::here("results/estimaciones_gto/faltantes_estrato_gto_
   mutate(muestra = "faltantes_estrato")
 
 
-real <- quickcountmx::gto_2012 %>% 
+real <- readr::read_csv(here::here("data/gto_2012.csv")) %>% 
     gather(partido, n_votes, pri_pvem:otros) %>% 
     group_by(partido) %>% 
     summarise(n_votes = sum(n_votes)) %>% 
