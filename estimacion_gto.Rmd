@@ -118,8 +118,6 @@ full_join(completam, estratom) %>%
   theme_minimal() 
 ```
 
-## Comparación
-
 ```{R, echo = FALSE, message = FALSE}
 bin_neg <- full_join(completas, estrato) %>% 
   full_join(casilla) %>% 
@@ -129,11 +127,6 @@ bin_neg <- full_join(completas, estrato) %>%
     ind = sum(if_else(real <= int_r & real >= int_l, 1, 0)),
     pres = mean((int_r - int_l)/2)
   ) %>% ungroup
-```
-
-
-```{r, echo = FALSE, message = FALSE}
-
 
 mezcla <- full_join(completam, estratom) %>% 
   full_join(casillam) %>% 
@@ -146,6 +139,51 @@ mezcla <- full_join(completam, estratom) %>%
     pres = mean(pres)
   ) %>% ungroup
 
+```
+
+## Resumen 
+
+```{r, echo = FALSE}
+bin_neg %>% 
+  mutate(
+    modelo = "binomial negativo"
+  ) %>% 
+  full_join(
+    mezcla %>% 
+      mutate(
+        modelo = "mezcla"
+      ), 
+    by = c("party", "muestra", "ind", "pres", "modelo")
+  ) %>% 
+  ggplot(
+    aes(
+      x = modelo, 
+      y = pres, 
+      fill = party
+    )
+  ) +
+  facet_wrap(~muestra, ncol = 1) +
+  geom_bar(
+    stat = "identity",
+    position = "dodge"
+    ) +
+  geom_text(
+    aes(label = ind),
+    position = position_dodge(width=0.9),
+    vjust=-0.25
+  ) +
+  ylim(0,1.20) +
+  theme_minimal()  +
+  labs(
+    y = "Precisión",
+    x = ""
+  )
+
+
+```
+
+
+```{r, echo = FALSE, message = FALSE}
 mezcla %>% 
   rename(mezcla = ind, pres_mezcla = pres) %>% 
   left_join(
